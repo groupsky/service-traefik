@@ -7,9 +7,13 @@ services:
     command:
       - --api.dashboard=true
       - --api.insecure=true
+      - --certificatesResolvers.default.acme.email=${TRAEFIK_ACME_EMAIL}
+      - --certificatesResolvers.default.acme.caServer=${TRAEFIK_ACME_CA_SERVER}
+      - --certificatesResolvers.default.acme.storage=/acme/acme.json
+      - --certificatesResolvers.default.acme.httpChallenge.entryPoint=http
       - --entrypoints.http.address=:${TRAEFIK_HTTP_PORT}
       - --entrypoints.https.address=:${TRAEFIK_HTTPS_PORT}
-      - --log.level=DEBUG
+      - --log.level=${TRAEFIK_LOG_LEVEL}
       - --providers.docker
       - --providers.docker.exposedByDefault=false
       - --providers.docker.network=${INGRESS_NETWORK}
@@ -19,6 +23,7 @@ services:
       - "${TRAEFIK_HTTP_PORT}:${TRAEFIK_HTTP_PORT}"
       - "${TRAEFIK_HTTPS_PORT}:${TRAEFIK_HTTPS_PORT}"
     volumes:
+      - ${TRAEFIK_DATA_ACME_PATH}:/acme
       # TODO secure the access
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -27,7 +32,8 @@ services:
     restart: on-failure
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik-whoami.entrypoints=http"
+      - "traefik.http.routers.traefik-whoami.entrypoints=http, https"
       - "traefik.http.routers.traefik-whoami.rule=Host(`${TRAEFIK_WHOAMI_DOMAIN}`)"
+      - "traefik.http.routers.traefik-whoami.tls.certResolver=default"
     networks:
       - ${INGRESS_NETWORK}
